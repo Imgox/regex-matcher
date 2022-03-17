@@ -7,59 +7,81 @@ void ft_putchar(char c)
 
 void insert_star(t_btree_node **tree)
 {
-	t_btree_node *node;
 	t_btree_node *root;
-	char tmp;
+	char el;
 
-	node = *tree;
 	root = *tree;
-	while (node->right)
-		node = node->right;
-	tmp = node->c;
-	node->c = STAR;
-	node->left = btree_create_node(OR);
+	while ((*tree)->right)
+		*tree = (*tree)->right;
+	el = (*tree)->c;
+	(*tree)->c = STAR;
+	(*tree)->left = btree_create_node(el);
 	*tree = root;
 }
 
-t_btree_node *regex_to_btree(t_btree_node *tree, char *regex)
+t_btree_node *regex_to_btree_elem(t_btree_node *tree, char **regex)
 {
-	// printf("regex_to_btree: %s\n", regex);
-	t_btree_node *tmp;
-	char c = regex[0];
+	char c = (*regex)[0];
+	t_btree_node *res;
 
-	if (c == '\0')
-		return (tree);
 	if (!tree)
 	{
 		if (c == STAR || c == OR || c == CLOSE_PARENTHESIS)
-			throw_error("Error: Invalid regex");
-		else
-			return regex_to_btree(btree_create_node(c), regex + 1);
+			throw_error("Error: invalid regex.");
+		else if (c != OPEN_PARENTHESIS)
+		{
+			(*regex)++;
+			return btree_create_node(c);
+		}
+	}
+	if (c == OR)
+	{
+		int next_or = find_char(*regex, OR, 1);
+		res = btree_create_node(OR);
+		res->left = tree;
+		res->right = regex_to_btree(substring(*regex, 1, next_or));
+		*regex = next_or >= 0 ? (*regex) + next_or : 0;
+		return res;
 	}
 	if (c == STAR)
 	{
 		insert_star(&tree);
-		btree_apply_postfix(tree, &ft_putchar);
-		return regex_to_btree(tree, regex + 1);
-	}
-	if (c == OR)
-	{
-		tmp = btree_create_node(OR);
-		tmp->left = tree;
-		tmp->right = regex_to_btree(NULL, regex + 1);
-		return (tmp);
+		(*regex)++;
+		return tree;
 	}
 	if (c == OPEN_PARENTHESIS)
 	{
-		tmp = btree_create_node(CONCAT);
-		tmp->left = tree;
-		tmp->right = regex_to_btree(NULL, substring(regex, 1, find_closing(regex, 1)));
-		return (tmp);
+		int end = find_closing(*regex, 1);
+		if (end < 0)
+			throw_error("Error: invalid regex");
+		res = btree_create_node(CONCAT);
+		res->left = tree;
+		res->right = regex_to_btree(substring(*regex, 1, end));
+		(*regex) += end;
+		return res;
 	}
-	tmp = btree_create_node(CONCAT);
-	tmp->left = tree;
-	tmp->right = regex_to_btree(btree_create_node(c), regex + 1);
-	return (tmp);
+	if (c == CLOSE_PARENTHESIS)
+		throw_error("Error: invalid regex.");
+	res = btree_create_node(CONCAT);
+	res->left = tree;
+	res->right = btree_create_node(c);
+	(*regex)++;
+	return res;
+}
+
+t_btree_node *regex_to_btree(char *regex)
+{
+	t_btree_node *tree;
+
+	tree = NULL;
+	while (regex[0])
+	{
+		tree = regex_to_btree_elem(tree, &regex);
+		btree_apply_postfix(tree, &ft_putchar);
+		ft_putchar('\n');
+	}
+
+	return (tree);
 }
 
 int main(int argc, char *argv[])
@@ -69,11 +91,14 @@ int main(int argc, char *argv[])
 	char *regex = argv[1];
 	char *word = argv[2];
 
-	t_btree_node *tree = regex_to_btree(NULL, regex);
-
-	btree_apply_postfix(tree, &ft_putchar);
-
-	free_tree(tree);
+	t_btree_node *tree;
+	tree = regex_to_btree(regex);
+	if (tree)
+	{
+		printf("DFsdf\n");
+	}
+	// btree_apply_postfix(tree, &ft_putchar);
+	// free_tree(tree);
 
 	return 0;
 }

@@ -49,6 +49,7 @@ char *substring(char *str, int start, int end)
 	sub = (char *)malloc(sizeof(char) * (end - start + 2));
 	if (sub == NULL)
 		return (NULL);
+	end = end >= 0 ? end : strlen(str);
 	while (start < end)
 	{
 		sub[i] = str[start];
@@ -68,7 +69,7 @@ void throw_error(char *str)
 int find_closing(char *str, int start)
 {
 	int i = start;
-	int count = 0;
+	int count = 1;
 
 	while (str[i])
 	{
@@ -81,4 +82,16 @@ int find_closing(char *str, int start)
 		i++;
 	}
 	return (-1);
+}
+
+int find_char(char *str, char c, int start)
+{
+	int i = start;
+	while (str[i])
+	{
+		if (str[i] == c)
+			return i;
+		i++;
+	}
+	return -1;
 }

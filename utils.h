@@ -27,5 +27,8 @@ void free_tree(t_btree_node *root);
 char *substring(char *str, int start, int end);
 void throw_error(char *str);
 int find_closing(char *str, int start);
+t_btree_node *regex_to_btree_elem(t_btree_node *tree, char **regex);
+t_btree_node *regex_to_btree(char *regex);
+int find_char(char *str, char c, int start);
 
 #endif // UTILS_H
