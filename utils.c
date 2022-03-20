@@ -1,4 +1,4 @@
-#include "utils.h"
+#include "mptlc.h"
 
 t_btree_node *btree_create_node(char c)
 {
@@ -94,4 +94,9 @@ int find_char(char *str, char c, int start)
 		i++;
 	}
 	return -1;
+}
+
+void ft_putchar(char c)
+{
+	write(1, &c, 1);
 }

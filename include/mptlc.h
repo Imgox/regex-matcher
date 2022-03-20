@@ -1,5 +1,5 @@
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef MPTLC_H
+#define MPTLC_H
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -30,5 +30,9 @@ int find_closing(char *str, int start);
 t_btree_node *regex_to_btree_elem(t_btree_node *tree, char **regex);
 t_btree_node *regex_to_btree(char *regex);
 int find_char(char *str, char c, int start);
+void insert_star(t_btree_node **tree);
+t_btree_node *regex_to_btree_elem(t_btree_node *tree, char **regex);
+t_btree_node *regex_to_btree(char *regex);
+void ft_putchar(char c);
 
 #endif // UTILS_H
