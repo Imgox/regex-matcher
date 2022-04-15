@@ -1,5 +1,5 @@
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef MPTLC_H
+#define MPTLC_H
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -54,5 +54,7 @@ void push_nfa(t_nfa_node *nfa);
 t_nfa_node *pop_nfa();
 t_nfa_node *top_nfa();
 void show_stack();
+void thompson_elem(t_btree_node *node);
+void thompson(t_btree_node *tree);
 
 #endif // UTILS_H

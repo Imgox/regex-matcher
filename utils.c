@@ -1,4 +1,4 @@
-#include "utils.h"
+#include "mptlc.h"
 
 t_nfa_node **g_nfa_stack;
 int g_nfa_count = 0;
@@ -186,4 +186,9 @@ void show_stack()
 		print_nfa(g_nfa_stack[i]);
 		printf("=============================\n");
 	}
+}
+
+void ft_putchar(char c)
+{
+	write(1, &c, 1);
 }
