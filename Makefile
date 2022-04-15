@@ -1,6 +1,6 @@
 NAME = mptlc
 SRC = utils.c mptlc.c main.c 
-CFLAGS = -Wall -Wextra -Werror
+# CFLAGS = -Wall -Wextra -Werror
 INCLUDE = -I ./include
 CC = gcc
 OBJ = $(SRC:%.c=bin/%.o)

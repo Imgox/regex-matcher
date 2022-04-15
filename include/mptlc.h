@@ -56,5 +56,6 @@ t_nfa_node *top_nfa();
 void show_stack();
 void thompson_elem(t_btree_node *node);
 void thompson(t_btree_node *tree);
+void ft_putchar(char c);
 
 #endif // UTILS_H
