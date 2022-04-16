@@ -31,7 +31,7 @@ t_btree_node *regex_to_btree_elem(t_btree_node *tree, char **regex)
 	}
 	if (c == OR)
 	{
-		int next_or = find_char(*regex, OR, 1);
+		int next_or = find_next_or(*regex, 1);
 		res = btree_create_node(OR);
 		res->left = tree;
 		res->right = regex_to_btree(substring(*regex, 1, next_or));
@@ -48,16 +48,28 @@ t_btree_node *regex_to_btree_elem(t_btree_node *tree, char **regex)
 	if (c == OPEN_PARENTHESIS)
 	{
 		int end = find_closing(*regex, 1);
+		printf("%s -- %d\n", *regex, end);
 		if (end < 0)
 			throw_error(ERR_INV_REGEX);
-		res = btree_create_node(CONCAT);
-		res->left = tree;
-		res->right = regex_to_btree(substring(*regex, 1, end));
+		if (tree)
+		{
+			res = btree_create_node(CONCAT);
+			res->left = tree;
+			res->right = regex_to_btree(substring(*regex, 1, end));
+		}
+		else
+		{
+			res = regex_to_btree(substring(*regex, 1, end));
+		}
 		(*regex) += end;
 		return res;
 	}
 	if (c == CLOSE_PARENTHESIS)
-		throw_error(ERR_INV_REGEX);
+	{
+		// throw_error(ERR_INV_REGEX);
+		(*regex)++;
+		return tree;
+	}
 	res = btree_create_node(CONCAT);
 	res->left = tree;
 	res->right = btree_create_node(c);
@@ -82,26 +94,129 @@ void thompson_elem(t_btree_node *node)
 
 	if (c == CONCAT)
 	{
-		// t_nfa_node *nfa2 = pop_nfa();
-		// t_nfa_node *nfa1 = pop_nfa();
+		t_nfa *nfa2 = pop_nfa();
+		t_nfa *nfa1 = pop_nfa();
+		t_nfa *nfa = create_nfa();
+		int i = 0;
+		while (nfa1->intermediates && i < nfa1->state_count)
+		{
+			if (i == 0)
+				nfa->start = nfa1->intermediates[i];
+			t_state *s = nfa1->intermediates[i];
+			if (s->type == e_final_state)
+			{
+				s->type = e_intermediate_state;
+				t_transition *t = create_transition(EPSILON, nfa2->start);
+				add_transition(&s, t);
+			}
+			add_state(&nfa, s);
+			i++;
+		}
+		i = 0;
+		while (nfa2->intermediates && i < nfa2->state_count)
+		{
+			t_state *s = nfa2->intermediates[i];
+			if (s->type == e_initial_state)
+				s->type = e_intermediate_state;
+			add_state(&nfa, s);
+			i++;
+		}
+		nfa->end = nfa2->intermediates[i - 1];
+		push_nfa(nfa);
 		return;
 	}
 	else if (c == STAR)
 	{
+		t_nfa *nfa1 = pop_nfa();
+		t_nfa *nfa = create_nfa();
+		t_state *start = create_state(e_initial_state);
+		t_state *end = create_state(e_final_state);
+		t_transition *t = create_transition(EPSILON, nfa1->start);
+		add_transition(&start, t);
+		t = create_transition(EPSILON, end);
+		add_transition(&start, t);
+		add_state(&nfa, start);
+		add_state(&nfa, end);
+		nfa->start = start;
+		nfa->end = end;
+		int i = 0;
+		while (nfa1->intermediates && i < nfa1->state_count)
+		{
+			t_state *s = nfa1->intermediates[i];
+			if (s->type == e_final_state)
+			{
+				s->type = e_intermediate_state;
+				t_transition *t = create_transition(EPSILON, end);
+				add_transition(&s, t);
+				t = create_transition(EPSILON, nfa1->start);
+				add_transition(&s, t);
+			}
+			if (s->type == e_initial_state)
+				s->type = e_intermediate_state;
+			add_state(&nfa, s);
+			i++;
+		}
+		push_nfa(nfa);
 		return;
 	}
 	else if (c == OR)
 	{
+		t_nfa *nfa2 = pop_nfa();
+		t_nfa *nfa1 = pop_nfa();
+		t_nfa *nfa = create_nfa();
+		t_state *start = create_state(e_initial_state);
+		t_state *end = create_state(e_final_state);
+		t_transition *t = create_transition(EPSILON, nfa1->start);
+		add_transition(&start, t);
+		t = create_transition(EPSILON, nfa2->start);
+		add_transition(&start, t);
+		add_state(&nfa, start);
+		add_state(&nfa, end);
+		nfa->start = start;
+		nfa->end = end;
+		int i = 0;
+		while (nfa1->intermediates && i < nfa1->state_count)
+		{
+			t_state *s = nfa1->intermediates[i];
+			if (s->type == e_final_state)
+			{
+				s->type = e_intermediate_state;
+				t_transition *t = create_transition(EPSILON, end);
+				add_transition(&s, t);
+			}
+			if (s->type == e_initial_state)
+				s->type = e_intermediate_state;
+			add_state(&nfa, s);
+			i++;
+		}
+		i = 0;
+		while (nfa2->intermediates && i < nfa2->state_count)
+		{
+			t_state *s = nfa2->intermediates[i];
+			if (s->type == e_final_state)
+			{
+				s->type = e_intermediate_state;
+				t_transition *t = create_transition(EPSILON, end);
+				add_transition(&s, t);
+			}
+			if (s->type == e_initial_state)
+				s->type = e_intermediate_state;
+			add_state(&nfa, s);
+			i++;
+		}
+		push_nfa(nfa);
 		return;
 	}
 	else
 	{
-		t_nfa_node *nfa1 = nfa_create_node(e_initial_state);
-		t_nfa_node *nfa2 = nfa_create_node(e_final_state);
-
-		nfa1->c1 = c;
-		nfa1->next1 = nfa2;
-		push_nfa(nfa1);
+		t_nfa *nfa = create_nfa();
+		nfa->start = create_state(e_initial_state);
+		nfa->end = create_state(e_final_state);
+		add_state(&nfa, nfa->start);
+		add_state(&nfa, nfa->end);
+		t_transition *transition = create_transition(c, nfa->end);
+		add_transition(&nfa->start, transition);
+		push_nfa(nfa);
 	}
 }
 
