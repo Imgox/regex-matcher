@@ -3,7 +3,7 @@
 t_nfa **g_nfa_stack;
 int g_nfa_count = 0;
 
-t_btree_node *btree_create_node(char c)
+t_btree_node *create_btree_node(char c)
 {
 	t_btree_node *node;
 
@@ -46,6 +46,12 @@ void add_transition(t_state **state, t_transition *transition)
 	(*state)->transition_count++;
 }
 
+void update_transition(t_transition **transition, char c, t_state *next)
+{
+	(*transition)->c = c;
+	(*transition)->next = next;
+}
+
 t_state *create_state(t_type type)
 {
 	t_state *state = (t_state *)malloc(sizeof(t_state));
@@ -57,19 +63,19 @@ t_state *create_state(t_type type)
 
 void add_state(t_nfa **nfa, t_state *state)
 {
-	if ((*nfa)->intermediates == NULL)
+	if ((*nfa)->states == NULL)
 	{
-		(*nfa)->intermediates = (t_state **)malloc(sizeof(t_state *));
-		if ((*nfa)->intermediates == NULL)
+		(*nfa)->states = (t_state **)malloc(sizeof(t_state *));
+		if ((*nfa)->states == NULL)
 			throw_error(ERR_ALLOC);
-		(*nfa)->intermediates[0] = state;
+		(*nfa)->states[0] = state;
 		(*nfa)->state_count = 1;
 		return;
 	}
-	(*nfa)->intermediates = (t_state **)realloc((*nfa)->intermediates, sizeof(t_state *) * ((*nfa)->state_count + 1));
-	if ((*nfa)->intermediates == NULL)
+	(*nfa)->states = (t_state **)realloc((*nfa)->states, sizeof(t_state *) * ((*nfa)->state_count + 1));
+	if ((*nfa)->states == NULL)
 		throw_error(ERR_ALLOC);
-	(*nfa)->intermediates[(*nfa)->state_count] = state;
+	(*nfa)->states[(*nfa)->state_count] = state;
 	(*nfa)->state_count++;
 }
 
@@ -105,34 +111,34 @@ void btree_apply_postfix(t_btree_node *root, void (*applyf)(char))
 	applyf(root->c);
 }
 
-void free_node(t_btree_node *node)
+void free_btree_node(t_btree_node *node)
 {
 	if (node == NULL)
 		return;
-	free_node(node->left);
-	free_node(node->right);
+	free_btree_node(node->left);
+	free_btree_node(node->right);
 	free(node);
 }
 
-void free_tree(t_btree_node *root)
+void free_btree(t_btree_node *root)
 {
 	if (root == NULL)
 		return;
-	free_tree(root->left);
-	free_tree(root->right);
+	free_btree(root->left);
+	free_btree(root->right);
 	free(root);
 }
 
-t_btree_node *btree_copy(t_btree_node *tree)
+t_btree_node *copy_btree(t_btree_node *tree)
 {
 	t_btree_node *copy;
 
 	if (tree == NULL)
 		return NULL;
 
-	copy = btree_create_node(tree->c);
-	copy->left = btree_copy(tree->left);
-	copy->right = btree_copy(tree->right);
+	copy = create_btree_node(tree->c);
+	copy->left = copy_btree(tree->left);
+	copy->right = copy_btree(tree->right);
 
 	return copy;
 }
@@ -220,7 +226,9 @@ t_nfa *create_nfa()
 {
 	t_nfa *nfa = (t_nfa *)malloc(sizeof(t_nfa));
 	nfa->state_count = 0;
-	nfa->intermediates = NULL;
+	nfa->states = NULL;
+	nfa->start = NULL;
+	nfa->end = NULL;
 	return (nfa);
 }
 
@@ -228,7 +236,7 @@ void free_nfa(t_nfa *nfa)
 {
 	free_state(nfa->start);
 	free_state(nfa->end);
-	free_states(nfa->intermediates);
+	free_states(nfa->states);
 	free(nfa);
 }
 
@@ -247,7 +255,7 @@ t_nfa *pop_nfa()
 	t_nfa *nfa = g_nfa_stack[g_nfa_count];
 	// free_state(nfa->start);
 	// free_state(nfa->end);
-	// free_states(nfa->intermediates);
+	// free_states(nfa->states);
 	// free(nfa);
 	g_nfa_stack = realloc(g_nfa_stack, g_nfa_count * sizeof(t_nfa *));
 	return nfa;
@@ -265,25 +273,32 @@ void print_nfa(t_nfa *nfa)
 		"Final",
 		"Intermediate",
 	};
+	char *colors[] = {
+		GREEN,
+		RED,
+		YELLOW,
+	};
 	if (nfa == NULL)
 		return;
 	int i = 0;
 	printf("Nbr of states: %d\n", nfa->state_count);
-	while (nfa->intermediates[i] && i < nfa->state_count)
+	while (nfa->states[i] && i < nfa->state_count)
 	{
-		printf("-------------\n");
-		printf("State %p\n", nfa->intermediates[i]);
-		printf("Type: %s\n", types[nfa->intermediates[i]->type]);
-		printf("Transitions:\n");
+		printf("\n-----------------------------\n\n");
+		printf("%s", colors[nfa->states[i]->type]);
+		printf("\tState %p\n", nfa->states[i]);
+		printf("\tType: %s\n", types[nfa->states[i]->type]);
+		printf("\tTransitions:\n");
 		int j = 0;
-		if (nfa->intermediates[i]->transition_count == 0 || nfa->intermediates[i]->transitions == NULL)
-			printf("\tNone\n");
+		if (nfa->states[i]->transition_count == 0 || nfa->states[i]->transitions == NULL)
+			printf("\t\tNone\n");
 		else
-			while (nfa->intermediates[i]->transitions[j] && j < nfa->intermediates[i]->transition_count)
+			while (nfa->states[i]->transitions[j] && j < nfa->states[i]->transition_count)
 			{
-				printf("\t%c -> %p\n", nfa->intermediates[i]->transitions[j]->c, nfa->intermediates[i]->transitions[j]->next);
+				printf("\t\t%c -> %p\n", nfa->states[i]->transitions[j]->c, nfa->states[i]->transitions[j]->next);
 				j++;
 			}
+		printf("%s", RESET);
 		i++;
 	}
 }
@@ -292,13 +307,25 @@ void show_stack()
 {
 	for (int i = g_nfa_count - 1; i >= 0; i--)
 	{
-		printf("=============================\n");
+		printf("======================================\n");
 		printf("   NFA No %d\n", g_nfa_count - 1 - i);
-		printf("=============================\n");
+		printf("======================================\n\n");
 		print_nfa(g_nfa_stack[i]);
-		printf("=============================\n");
+		printf("\n======================================\n");
 	}
 }
+
+t_dfa *create_dfa()
+{
+	t_dfa *dfa = (t_dfa *)malloc(sizeof(t_dfa));
+	dfa->start_group = NULL;
+	dfa->end_group = NULL;
+	dfa->state_groups = NULL;
+	dfa->state_group_count = 0;
+	return (dfa);
+}
+
+// t_state **create_state_group()
 
 void ft_putchar(char c)
 {

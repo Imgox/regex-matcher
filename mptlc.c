@@ -10,7 +10,7 @@ void insert_star(t_btree_node **tree)
 		*tree = (*tree)->right;
 	el = (*tree)->c;
 	(*tree)->c = STAR;
-	(*tree)->left = btree_create_node(el);
+	(*tree)->left = create_btree_node(el);
 	*tree = root;
 }
 
@@ -26,13 +26,13 @@ t_btree_node *regex_to_btree_elem(t_btree_node *tree, char **regex)
 		else if (c != OPEN_PARENTHESIS)
 		{
 			(*regex)++;
-			return btree_create_node(c);
+			return create_btree_node(c);
 		}
 	}
 	if (c == OR)
 	{
 		int next_or = find_next_or(*regex, 1);
-		res = btree_create_node(OR);
+		res = create_btree_node(OR);
 		res->left = tree;
 		res->right = regex_to_btree(substring(*regex, 1, next_or));
 		*regex = next_or >= 0 ? (*regex) + next_or : 0;
@@ -53,7 +53,7 @@ t_btree_node *regex_to_btree_elem(t_btree_node *tree, char **regex)
 			throw_error(ERR_INV_REGEX);
 		if (tree)
 		{
-			res = btree_create_node(CONCAT);
+			res = create_btree_node(CONCAT);
 			res->left = tree;
 			res->right = regex_to_btree(substring(*regex, 1, end));
 		}
@@ -70,9 +70,9 @@ t_btree_node *regex_to_btree_elem(t_btree_node *tree, char **regex)
 		(*regex)++;
 		return tree;
 	}
-	res = btree_create_node(CONCAT);
+	res = create_btree_node(CONCAT);
 	res->left = tree;
-	res->right = btree_create_node(c);
+	res->right = create_btree_node(c);
 	(*regex)++;
 	return res;
 }
@@ -98,30 +98,35 @@ void thompson_elem(t_btree_node *node)
 		t_nfa *nfa1 = pop_nfa();
 		t_nfa *nfa = create_nfa();
 		int i = 0;
-		while (nfa1->intermediates && i < nfa1->state_count)
+		while (i < nfa1->state_count)
 		{
 			if (i == 0)
-				nfa->start = nfa1->intermediates[i];
-			t_state *s = nfa1->intermediates[i];
-			if (s->type == e_final_state)
+				nfa->start = nfa1->states[i];
+			t_state *s = nfa1->states[i];
+			if (s->type != e_final_state)
+				add_state(&nfa, s);
+			int j = 0;
+			while (j < s->transition_count)
 			{
-				s->type = e_intermediate_state;
-				t_transition *t = create_transition(EPSILON, nfa2->start);
-				add_transition(&s, t);
+				t_transition *t = s->transitions[j];
+				if (t->next->type == e_final_state)
+				{
+					update_transition(&t, t->c, nfa2->start);
+				}
+				j++;
 			}
-			add_state(&nfa, s);
 			i++;
 		}
 		i = 0;
-		while (nfa2->intermediates && i < nfa2->state_count)
+		while (i < nfa2->state_count)
 		{
-			t_state *s = nfa2->intermediates[i];
+			t_state *s = nfa2->states[i];
 			if (s->type == e_initial_state)
 				s->type = e_intermediate_state;
 			add_state(&nfa, s);
 			i++;
 		}
-		nfa->end = nfa2->intermediates[i - 1];
+		nfa->end = nfa2->states[i - 1];
 		push_nfa(nfa);
 		return;
 	}
@@ -140,9 +145,9 @@ void thompson_elem(t_btree_node *node)
 		nfa->start = start;
 		nfa->end = end;
 		int i = 0;
-		while (nfa1->intermediates && i < nfa1->state_count)
+		while (nfa1->states && i < nfa1->state_count)
 		{
-			t_state *s = nfa1->intermediates[i];
+			t_state *s = nfa1->states[i];
 			if (s->type == e_final_state)
 			{
 				s->type = e_intermediate_state;
@@ -175,9 +180,9 @@ void thompson_elem(t_btree_node *node)
 		nfa->start = start;
 		nfa->end = end;
 		int i = 0;
-		while (nfa1->intermediates && i < nfa1->state_count)
+		while (nfa1->states && i < nfa1->state_count)
 		{
-			t_state *s = nfa1->intermediates[i];
+			t_state *s = nfa1->states[i];
 			if (s->type == e_final_state)
 			{
 				s->type = e_intermediate_state;
@@ -190,9 +195,9 @@ void thompson_elem(t_btree_node *node)
 			i++;
 		}
 		i = 0;
-		while (nfa2->intermediates && i < nfa2->state_count)
+		while (nfa2->states && i < nfa2->state_count)
 		{
-			t_state *s = nfa2->intermediates[i];
+			t_state *s = nfa2->states[i];
 			if (s->type == e_final_state)
 			{
 				s->type = e_intermediate_state;
@@ -228,3 +233,7 @@ void thompson(t_btree_node *tree)
 	thompson(tree->right);
 	thompson_elem(tree);
 }
+
+// t_dfa *create_dfa_from_nfa(t_nfa *nfa)
+// {
+// }
