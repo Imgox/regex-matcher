@@ -8,7 +8,7 @@ int main(int argc, char *argv[])
 	char *regex = argv[1];
 	char *word = argv[2];
 	t_btree_node *tree;
-	t_dfa *dfa;
+	t_automaton *dfa;
 
 	tree = regex_to_btree(regex);
 	if (!tree)

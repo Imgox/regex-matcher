@@ -94,9 +94,9 @@ void thompson_elem(t_btree_node *node)
 
 	if (c == CONCAT)
 	{
-		t_nfa *nfa2 = pop_nfa();
-		t_nfa *nfa1 = pop_nfa();
-		t_nfa *nfa = create_nfa();
+		t_automaton *nfa2 = pop_nfa();
+		t_automaton *nfa1 = pop_nfa();
+		t_automaton *nfa = create_automaton(e_nfa);
 		int i = 0;
 		while (i < nfa1->state_count)
 		{
@@ -132,8 +132,8 @@ void thompson_elem(t_btree_node *node)
 	}
 	else if (c == STAR)
 	{
-		t_nfa *nfa1 = pop_nfa();
-		t_nfa *nfa = create_nfa();
+		t_automaton *nfa1 = pop_nfa();
+		t_automaton *nfa = create_automaton(e_nfa);
 		t_state *start = create_state(e_initial_state);
 		t_state *end = create_state(e_final_state);
 		t_transition *t = create_transition(EPSILON, nfa1->start);
@@ -166,9 +166,9 @@ void thompson_elem(t_btree_node *node)
 	}
 	else if (c == OR)
 	{
-		t_nfa *nfa2 = pop_nfa();
-		t_nfa *nfa1 = pop_nfa();
-		t_nfa *nfa = create_nfa();
+		t_automaton *nfa2 = pop_nfa();
+		t_automaton *nfa1 = pop_nfa();
+		t_automaton *nfa = create_automaton(e_nfa);
 		t_state *start = create_state(e_initial_state);
 		t_state *end = create_state(e_final_state);
 		t_transition *t = create_transition(EPSILON, nfa1->start);
@@ -214,7 +214,7 @@ void thompson_elem(t_btree_node *node)
 	}
 	else
 	{
-		t_nfa *nfa = create_nfa();
+		t_automaton *nfa = create_automaton(e_nfa);
 		nfa->start = create_state(e_initial_state);
 		nfa->end = create_state(e_final_state);
 		add_state(&nfa, nfa->start);
@@ -233,7 +233,3 @@ void thompson(t_btree_node *tree)
 	thompson(tree->right);
 	thompson_elem(tree);
 }
-
-// t_dfa *create_dfa_from_nfa(t_nfa *nfa)
-// {
-// }

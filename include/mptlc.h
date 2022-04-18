@@ -46,28 +46,27 @@ typedef struct s_state
 	int transition_count;
 } t_state;
 
-typedef struct s_nfa
+typedef struct s_automaton
 {
+	int type;
 	t_state *start;
 	t_state **states;
 	t_state *end;
 	int state_count;
-} t_nfa;
+} t_automaton;
 
-typedef struct s_dfa
-{
-	t_state **start_group;
-	t_state ***state_groups;
-	t_state **end_group;
-	int state_group_count;
-} t_dfa;
-
-typedef enum e_type
+typedef enum e_state_type
 {
 	e_initial_state,
 	e_final_state,
 	e_intermediate_state,
-} t_type;
+} t_state_type;
+
+typedef enum e_automaton_type
+{
+	e_nfa,
+	e_dfa
+} t_automaton_type;
 
 t_btree_node *create_btree_node(char c);
 void btree_apply_postfix(t_btree_node *root, void (*applyf)(char));
@@ -84,20 +83,19 @@ t_btree_node *copy_btree(t_btree_node *tree);
 t_transition *create_transition(char c, t_state *next);
 void add_transition(t_state **state, t_transition *transition);
 void update_transition(t_transition **transition, char c, t_state *next);
-t_state *create_state(t_type type);
-void add_state(t_nfa **nfa, t_state *state);
+t_state *create_state(t_state_type type);
+void add_state(t_automaton **nfa, t_state *state);
 void free_state(t_state *state);
 void free_states(t_state **states);
-t_nfa *create_nfa();
-void free_nfa(t_nfa *nfa);
-void push_nfa(t_nfa *nfa);
-t_nfa *pop_nfa();
-t_nfa *top_nfa();
+t_automaton *create_automaton(t_automaton_type type);
+void free_nfa(t_automaton *nfa);
+void push_nfa(t_automaton *nfa);
+t_automaton *pop_nfa();
+t_automaton *top_nfa();
 void show_stack();
 void thompson_elem(t_btree_node *node);
 void thompson(t_btree_node *tree);
-t_dfa *create_dfa();
-t_dfa *create_dfa_from_nfa(t_nfa *nfa);
+t_automaton *create_dfa_from_nfa(t_automaton *nfa);
 void ft_putchar(char c);
 
 #endif // UTILS_H

@@ -1,6 +1,6 @@
 #include "mptlc.h"
 
-t_nfa **g_nfa_stack;
+t_automaton **g_nfa_stack;
 int g_nfa_count = 0;
 
 t_btree_node *create_btree_node(char c)
@@ -52,7 +52,7 @@ void update_transition(t_transition **transition, char c, t_state *next)
 	(*transition)->next = next;
 }
 
-t_state *create_state(t_type type)
+t_state *create_state(t_state_type type)
 {
 	t_state *state = (t_state *)malloc(sizeof(t_state));
 	state->type = type;
@@ -61,7 +61,7 @@ t_state *create_state(t_type type)
 	return (state);
 }
 
-void add_state(t_nfa **nfa, t_state *state)
+void add_state(t_automaton **nfa, t_state *state)
 {
 	if ((*nfa)->states == NULL)
 	{
@@ -222,17 +222,18 @@ int find_next_or(char *str, int start)
 	return -1;
 }
 
-t_nfa *create_nfa()
+t_automaton *create_automaton(t_automaton_type type)
 {
-	t_nfa *nfa = (t_nfa *)malloc(sizeof(t_nfa));
-	nfa->state_count = 0;
-	nfa->states = NULL;
-	nfa->start = NULL;
-	nfa->end = NULL;
-	return (nfa);
+	t_automaton *automaton = (t_automaton *)malloc(sizeof(t_automaton));
+	automaton->type = type;
+	automaton->state_count = 0;
+	automaton->states = NULL;
+	automaton->start = NULL;
+	automaton->end = NULL;
+	return (automaton);
 }
 
-void free_nfa(t_nfa *nfa)
+void free_nfa(t_automaton *nfa)
 {
 	free_state(nfa->start);
 	free_state(nfa->end);
@@ -240,33 +241,29 @@ void free_nfa(t_nfa *nfa)
 	free(nfa);
 }
 
-void push_nfa(t_nfa *nfa)
+void push_nfa(t_automaton *nfa)
 {
-	g_nfa_stack = (t_nfa **)realloc(g_nfa_stack, (g_nfa_count + 1) * sizeof(t_nfa *));
+	g_nfa_stack = (t_automaton **)realloc(g_nfa_stack, (g_nfa_count + 1) * sizeof(t_automaton *));
 	if (g_nfa_stack == NULL)
 		throw_error(ERR_ALLOC);
 	g_nfa_stack[g_nfa_count] = nfa;
 	g_nfa_count++;
 }
 
-t_nfa *pop_nfa()
+t_automaton *pop_nfa()
 {
 	g_nfa_count--;
-	t_nfa *nfa = g_nfa_stack[g_nfa_count];
-	// free_state(nfa->start);
-	// free_state(nfa->end);
-	// free_states(nfa->states);
-	// free(nfa);
-	g_nfa_stack = realloc(g_nfa_stack, g_nfa_count * sizeof(t_nfa *));
+	t_automaton *nfa = g_nfa_stack[g_nfa_count];
+	g_nfa_stack = realloc(g_nfa_stack, g_nfa_count * sizeof(t_automaton *));
 	return nfa;
 }
 
-t_nfa *top_nfa()
+t_automaton *top_nfa()
 {
 	return (g_nfa_stack[g_nfa_count - 1]);
 }
 
-void print_nfa(t_nfa *nfa)
+void print_automaton(t_automaton *nfa)
 {
 	char *types[] = {
 		"Initial",
@@ -310,19 +307,9 @@ void show_stack()
 		printf("======================================\n");
 		printf("   NFA No %d\n", g_nfa_count - 1 - i);
 		printf("======================================\n\n");
-		print_nfa(g_nfa_stack[i]);
+		print_automaton(g_nfa_stack[i]);
 		printf("\n======================================\n");
 	}
-}
-
-t_dfa *create_dfa()
-{
-	t_dfa *dfa = (t_dfa *)malloc(sizeof(t_dfa));
-	dfa->start_group = NULL;
-	dfa->end_group = NULL;
-	dfa->state_groups = NULL;
-	dfa->state_group_count = 0;
-	return (dfa);
 }
 
 // t_state **create_state_group()
