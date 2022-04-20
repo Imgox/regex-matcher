@@ -8,7 +8,7 @@ int main(int argc, char *argv[])
 	char *regex = argv[1];
 	char *word = argv[2];
 	t_btree_node *tree;
-	t_automaton *dfa;
+	t_dfa *dfa;
 
 	tree = regex_to_btree(regex);
 	if (!tree)
@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
 	ft_putchar('\n');
 	thompson(tree);
 	show_stack();
-	// dfa = create_dfa_from_nfa(pop_nfa());
+	dfa = create_dfa_from_nfa(pop_nfa());
 	free_btree(tree);
 
 	return 0;

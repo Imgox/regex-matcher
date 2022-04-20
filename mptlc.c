@@ -233,3 +233,36 @@ void thompson(t_btree_node *tree)
 	thompson(tree->right);
 	thompson_elem(tree);
 }
+
+void epsilon_close(t_state_group **group, t_state *state)
+{
+	if (is_state_in_group(*group, state))
+		return ;
+	add_state_to_group(group, state);
+	for (int i = 0; i < state->transition_count; i++)
+	{
+		t_transition *t = state->transitions[i];
+		if (t->c != EPSILON)
+			return ;
+		epsilon_close(group, t->next);
+	}
+}
+
+void build_dfa(t_dfa **dfa, t_state_group ***groups, int *group_count, t_state_group *start)
+{
+	
+}
+
+t_dfa *create_dfa_from_nfa(t_automaton *nfa)
+{
+	t_dfa *dfa = create_dfa();
+	t_state_group *groups[nfa->state_count];
+	int group_count;
+
+	groups[0] = create_group(e_initial_state);
+	epsilon_close(&groups[0], nfa->start);
+	print_group(groups[0]);
+	dfa->start = groups[0];
+	add_group(&dfa, groups[0]);
+	build_dfa(&dfa, &groups, &group_count, groups[0]);
+}

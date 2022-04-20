@@ -26,6 +26,22 @@
 #define CYAN "\033[0;36m"
 #define RESET "\033[0m"
 
+#define TYPES (char *[]) {"Initial","Final","Intermediate"}
+#define COLORS (char *[]) { GREEN, RED, YELLOW }
+
+typedef enum e_state_type
+{
+	e_initial_state,
+	e_final_state,
+	e_intermediate_state,
+} t_state_type;
+
+typedef enum e_automaton_type
+{
+	e_nfa,
+	e_dfa
+} t_automaton_type;
+
 typedef struct s_btree_node
 {
 	char c;
@@ -46,6 +62,13 @@ typedef struct s_state
 	int transition_count;
 } t_state;
 
+typedef struct s_state_group
+{
+	t_state_type type;
+	t_state **states;
+	int state_count;
+} t_state_group;
+
 typedef struct s_automaton
 {
 	int type;
@@ -55,18 +78,14 @@ typedef struct s_automaton
 	int state_count;
 } t_automaton;
 
-typedef enum e_state_type
+typedef struct s_dfa
 {
-	e_initial_state,
-	e_final_state,
-	e_intermediate_state,
-} t_state_type;
-
-typedef enum e_automaton_type
-{
-	e_nfa,
-	e_dfa
-} t_automaton_type;
+	t_state_group *start;
+	t_state_group **groups;
+	t_state_group **end;
+	int group_count;
+	int end_count;
+} t_dfa;
 
 t_btree_node *create_btree_node(char c);
 void btree_apply_postfix(t_btree_node *root, void (*applyf)(char));
@@ -95,7 +114,15 @@ t_automaton *top_nfa();
 void show_stack();
 void thompson_elem(t_btree_node *node);
 void thompson(t_btree_node *tree);
-t_automaton *create_dfa_from_nfa(t_automaton *nfa);
+t_dfa *create_dfa();
+t_dfa *create_dfa_from_nfa(t_automaton *nfa);
+t_state_group *create_group(t_state_type type);
+void add_group(t_dfa **dfa, t_state_group *group);
+int is_group_in_groups(t_state_group **groups, int group_count, t_state_group *group);
+int is_state_in_group(t_state_group *group, t_state *state);
+void add_state_to_group(t_state_group **group, t_state *state);
+void add_final_group(t_dfa **dfa, t_state_group *group);
+void print_group(t_state_group *group);
 void ft_putchar(char c);
 
 #endif // UTILS_H

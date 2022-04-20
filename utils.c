@@ -265,16 +265,6 @@ t_automaton *top_nfa()
 
 void print_automaton(t_automaton *nfa)
 {
-	char *types[] = {
-		"Initial",
-		"Final",
-		"Intermediate",
-	};
-	char *colors[] = {
-		GREEN,
-		RED,
-		YELLOW,
-	};
 	if (nfa == NULL)
 		return;
 	int i = 0;
@@ -282,9 +272,9 @@ void print_automaton(t_automaton *nfa)
 	while (nfa->states[i] && i < nfa->state_count)
 	{
 		printf("\n-----------------------------\n\n");
-		printf("%s", colors[nfa->states[i]->type]);
+		printf("%s", COLORS[nfa->states[i]->type]);
 		printf("\tState %p\n", nfa->states[i]);
-		printf("\tType: %s\n", types[nfa->states[i]->type]);
+		printf("\tType: %s\n", TYPES[nfa->states[i]->type]);
 		printf("\tTransitions:\n");
 		int j = 0;
 		if (nfa->states[i]->transition_count == 0 || nfa->states[i]->transitions == NULL)
@@ -312,7 +302,142 @@ void show_stack()
 	}
 }
 
-// t_state **create_state_group()
+t_dfa *create_dfa()
+{
+	t_dfa *dfa = (t_dfa *)malloc(sizeof(t_dfa));
+	if (!dfa)
+		throw_error(ERR_ALLOC);
+	
+	dfa->start = NULL;
+	dfa->groups = NULL;
+	dfa->end = NULL;
+	dfa->group_count = 0;
+	dfa->end_count = 0;
+
+	return dfa;
+}
+
+t_state_group *create_group(t_state_type type)
+{
+	t_state_group *group = (t_state_group *)malloc(sizeof(t_state_group));
+	if (!group)
+		throw_error(ERR_ALLOC);
+	
+	group->states = NULL;
+	group->state_count = 0;
+	group->type = type;
+
+	return group;
+}
+
+int is_state_in_group(t_state_group *group, t_state *state)
+{
+	if (!group)
+		return 0;
+	for (int i = 0; i < group->state_count; i++)
+	{
+		t_state *s = group->states[i];
+		if (state == s)
+			return 1;
+	}
+	return 0;
+}
+
+void add_state_to_group(t_state_group **group, t_state *state)
+{
+	if (!(*group))
+		return ;
+	(*group)->state_count++;
+	if (!(*group)->states) {
+		(*group)->states = (t_state **)malloc(sizeof(t_state *));
+		if (!(*group)->states)
+			throw_error(ERR_ALLOC);
+	} else {
+		(*group)->states = (t_state **)realloc((*group)->states, sizeof(t_state *) * (*group)->state_count);
+		if (!(*group)->states)
+			throw_error(ERR_ALLOC);
+	}
+	if (state->type == e_final_state)
+		(*group)->type = e_final_state;
+	(*group)->states[(*group)->state_count - 1] = state;
+}
+
+int groups_eq(t_state_group *group1, t_state_group *group2)
+{
+	int flag;
+
+	for (int i = 0; i < group1->state_count; i++)
+	{
+		flag = 0;
+		t_state *s = group1->states[i];
+		if (!is_state_in_group(group2, s))
+			return 0;
+	}
+	return 1;
+}
+
+int is_group_in_groups(t_state_group **groups, int group_count, t_state_group *group)
+{
+	for (int i = 0; i < group_count; i++)
+	{
+		if (groups[i]->state_count != group->state_count)
+			return 0;
+		if (groups_eq(groups[i], group))
+			return 1;
+	}
+	return 0;
+}
+
+void add_group(t_dfa **dfa, t_state_group *group)
+{
+	if (!(*dfa))
+		return;
+	(*dfa)->group_count++;
+	if (!(*dfa)->groups) {
+		(*dfa)->groups = (t_state_group **)malloc(sizeof(t_state_group *));
+		if (!(*dfa)->groups)
+			throw_error(ERR_ALLOC);
+	} else {
+		(*dfa)->groups = (t_state_group **)realloc((*dfa)->groups, sizeof(t_state_group *) * (*dfa)->group_count);
+		if (!(*dfa)->groups)
+			throw_error(ERR_ALLOC);
+	}
+	(*dfa)->groups[(*dfa)->group_count - 1] = group;
+	if (group->type = e_final_state)
+		add_final_group(dfa, group);
+}
+
+void add_final_group(t_dfa **dfa, t_state_group *group)
+{
+	if (!(*dfa))
+		return;
+	(*dfa)->end_count++;
+	if (!(*dfa)->end) {
+		(*dfa)->end = (t_state_group **)malloc(sizeof(t_state_group *));
+		if (!(*dfa)->end)
+			throw_error(ERR_ALLOC);
+	} else {
+		(*dfa)->end = (t_state_group **)realloc((*dfa)->end, sizeof(t_state_group *) * (*dfa)->end_count);
+		if (!(*dfa)->end)
+			throw_error(ERR_ALLOC);
+	}
+	(*dfa)->end[(*dfa)->end_count - 1] = group;
+}
+
+void print_group(t_state_group *group)
+{
+	printf("============================\n");
+	printf("       GROUP %s\n", TYPES[group->type]);
+	printf("============================\n");
+	printf("\nNbr of states: %d\n\n", group->state_count);
+	printf("%s", COLORS[group->type]);
+	for (int i = 0; i < group->state_count; i++)
+	{
+		t_state *s = group->states[i];
+		printf("\tState %p\n", s);
+	}
+	printf("%s", RESET);	
+}
 
 void ft_putchar(char c)
 {
