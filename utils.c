@@ -1,6 +1,6 @@
 #include "mptlc.h"
 
-t_automaton **g_nfa_stack;
+t_nfa **g_nfa_stack;
 int g_nfa_count = 0;
 
 t_btree_node *create_btree_node(char c)
@@ -61,8 +61,12 @@ t_state *create_state(t_state_type type)
 	return (state);
 }
 
-void add_state(t_automaton **nfa, t_state *state)
+void add_state_to_nfa(t_nfa **nfa, t_state *state)
 {
+	if (state->type == e_initial_state && !(*nfa)->start)
+		(*nfa)->start = state;
+	if (state->type == e_final_state && !(*nfa)->end)
+		(*nfa)->end = state;
 	if ((*nfa)->states == NULL)
 	{
 		(*nfa)->states = (t_state **)malloc(sizeof(t_state *));
@@ -77,6 +81,43 @@ void add_state(t_automaton **nfa, t_state *state)
 		throw_error(ERR_ALLOC);
 	(*nfa)->states[(*nfa)->state_count] = state;
 	(*nfa)->state_count++;
+}
+
+void add_state_to_dfa(t_dfa **dfa, t_state *state)
+{
+	if (state->type == e_final_state)
+	{
+		if ((*dfa)->ends == NULL)
+		{
+			(*dfa)->ends = (t_state **)malloc(sizeof(t_state *));
+			if ((*dfa)->ends == NULL)
+				throw_error(ERR_ALLOC);
+			(*dfa)->ends[0] = state;
+			(*dfa)->end_count = 1;
+			return;
+		}
+		(*dfa)->ends = (t_state **)realloc((*dfa)->ends, sizeof(t_state *) * ((*dfa)->end_count + 1));
+		if ((*dfa)->ends == NULL)
+			throw_error(ERR_ALLOC);
+		(*dfa)->ends[(*dfa)->end_count] = state;
+		(*dfa)->end_count++;
+	}
+	else if (state->type == e_initial_state)
+		(*dfa)->start = state;
+	if ((*dfa)->states == NULL)
+	{
+		(*dfa)->states = (t_state **)malloc(sizeof(t_state *));
+		if ((*dfa)->states == NULL)
+			throw_error(ERR_ALLOC);
+		(*dfa)->states[0] = state;
+		(*dfa)->state_count = 1;
+		return;
+	}
+	(*dfa)->states = (t_state **)realloc((*dfa)->states, sizeof(t_state *) * ((*dfa)->state_count + 1));
+	if ((*dfa)->states == NULL)
+		throw_error(ERR_ALLOC);
+	(*dfa)->states[(*dfa)->state_count] = state;
+	(*dfa)->state_count++;
 }
 
 void free_state(t_state *state)
@@ -222,18 +263,17 @@ int find_next_or(char *str, int start)
 	return -1;
 }
 
-t_automaton *create_automaton(t_automaton_type type)
+t_nfa *create_nfa()
 {
-	t_automaton *automaton = (t_automaton *)malloc(sizeof(t_automaton));
-	automaton->type = type;
-	automaton->state_count = 0;
-	automaton->states = NULL;
-	automaton->start = NULL;
-	automaton->end = NULL;
-	return (automaton);
+	t_nfa *nfa = (t_nfa *)malloc(sizeof(t_nfa));
+	nfa->state_count = 0;
+	nfa->states = NULL;
+	nfa->start = NULL;
+	nfa->end = NULL;
+	return (nfa);
 }
 
-void free_nfa(t_automaton *nfa)
+void free_nfa(t_nfa *nfa)
 {
 	free_state(nfa->start);
 	free_state(nfa->end);
@@ -241,29 +281,29 @@ void free_nfa(t_automaton *nfa)
 	free(nfa);
 }
 
-void push_nfa(t_automaton *nfa)
+void push_nfa(t_nfa *nfa)
 {
-	g_nfa_stack = (t_automaton **)realloc(g_nfa_stack, (g_nfa_count + 1) * sizeof(t_automaton *));
+	g_nfa_stack = (t_nfa **)realloc(g_nfa_stack, (g_nfa_count + 1) * sizeof(t_nfa *));
 	if (g_nfa_stack == NULL)
 		throw_error(ERR_ALLOC);
 	g_nfa_stack[g_nfa_count] = nfa;
 	g_nfa_count++;
 }
 
-t_automaton *pop_nfa()
+t_nfa *pop_nfa()
 {
 	g_nfa_count--;
-	t_automaton *nfa = g_nfa_stack[g_nfa_count];
-	g_nfa_stack = realloc(g_nfa_stack, g_nfa_count * sizeof(t_automaton *));
+	t_nfa *nfa = g_nfa_stack[g_nfa_count];
+	g_nfa_stack = realloc(g_nfa_stack, g_nfa_count * sizeof(t_nfa *));
 	return nfa;
 }
 
-t_automaton *top_nfa()
+t_nfa *top_nfa()
 {
 	return (g_nfa_stack[g_nfa_count - 1]);
 }
 
-void print_automaton(t_automaton *nfa)
+void print_nfa(t_nfa *nfa)
 {
 	if (nfa == NULL)
 		return;
@@ -272,8 +312,7 @@ void print_automaton(t_automaton *nfa)
 	while (nfa->states[i] && i < nfa->state_count)
 	{
 		printf("\n-----------------------------\n\n");
-		printf("%s", COLORS[nfa->states[i]->type]);
-		printf("\tState %p\n", nfa->states[i]);
+		printf("\tState %s%p%s\n", COLORS[nfa->states[i]->type], nfa->states[i], RESET);
 		printf("\tType: %s\n", TYPES[nfa->states[i]->type]);
 		printf("\tTransitions:\n");
 		int j = 0;
@@ -282,12 +321,46 @@ void print_automaton(t_automaton *nfa)
 		else
 			while (nfa->states[i]->transitions[j] && j < nfa->states[i]->transition_count)
 			{
-				printf("\t\t%c -> %p\n", nfa->states[i]->transitions[j]->c, nfa->states[i]->transitions[j]->next);
+				t_state *next = nfa->states[i]->transitions[j]->next;
+				char c = nfa->states[i]->transitions[j]->c;
+				printf("\t\t%c -> %s%p%s\n", c, COLORS[next->type], next, RESET);
 				j++;
 			}
 		printf("%s", RESET);
 		i++;
 	}
+}
+
+void print_dfa(t_dfa *dfa)
+{
+	printf("==========================================\n");
+	printf("                     DFA\n");
+	printf("==========================================\n\n");
+	if (dfa == NULL)
+		return;
+	int i = 0;
+	printf("Nbr of states: %d\n", dfa->state_count);
+	while (dfa->states[i] && i < dfa->state_count)
+	{
+		printf("\n-----------------------------\n\n");
+		printf("\tState %s%p%s\n", COLORS[dfa->states[i]->type], dfa->states[i], RESET);
+		printf("\tType: %s\n", TYPES[dfa->states[i]->type]);
+		printf("\tTransitions:\n");
+		int j = 0;
+		if (dfa->states[i]->transition_count == 0 || dfa->states[i]->transitions == NULL)
+			printf("\t\tNone\n");
+		else
+			while (dfa->states[i]->transitions[j] && j < dfa->states[i]->transition_count)
+			{
+				t_state *next = dfa->states[i]->transitions[j]->next;
+				char c = dfa->states[i]->transitions[j]->c;
+				printf("\t\t%c -> %s%p%s\n", c, COLORS[next->type], next, RESET);
+				j++;
+			}
+		printf("%s", RESET);
+		i++;
+	}
+	printf("==========================================\n");
 }
 
 void show_stack()
@@ -297,7 +370,7 @@ void show_stack()
 		printf("======================================\n");
 		printf("   NFA No %d\n", g_nfa_count - 1 - i);
 		printf("======================================\n\n");
-		print_automaton(g_nfa_stack[i]);
+		print_nfa(g_nfa_stack[i]);
 		printf("\n======================================\n");
 	}
 }
@@ -307,11 +380,11 @@ t_dfa *create_dfa()
 	t_dfa *dfa = (t_dfa *)malloc(sizeof(t_dfa));
 	if (!dfa)
 		throw_error(ERR_ALLOC);
-	
+
 	dfa->start = NULL;
-	dfa->groups = NULL;
-	dfa->end = NULL;
-	dfa->group_count = 0;
+	dfa->states = NULL;
+	dfa->ends = NULL;
+	dfa->state_count = 0;
 	dfa->end_count = 0;
 
 	return dfa;
@@ -322,7 +395,7 @@ t_state_group *create_group(t_state_type type)
 	t_state_group *group = (t_state_group *)malloc(sizeof(t_state_group));
 	if (!group)
 		throw_error(ERR_ALLOC);
-	
+
 	group->states = NULL;
 	group->state_count = 0;
 	group->type = type;
@@ -346,13 +419,17 @@ int is_state_in_group(t_state_group *group, t_state *state)
 void add_state_to_group(t_state_group **group, t_state *state)
 {
 	if (!(*group))
-		return ;
-	(*group)->state_count++;
-	if (!(*group)->states) {
+		return;
+	if (!(*group)->states)
+	{
+		(*group)->state_count = 1;
 		(*group)->states = (t_state **)malloc(sizeof(t_state *));
 		if (!(*group)->states)
 			throw_error(ERR_ALLOC);
-	} else {
+	}
+	else
+	{
+		(*group)->state_count++;
 		(*group)->states = (t_state **)realloc((*group)->states, sizeof(t_state *) * (*group)->state_count);
 		if (!(*group)->states)
 			throw_error(ERR_ALLOC);
@@ -381,54 +458,17 @@ int is_group_in_groups(t_state_group **groups, int group_count, t_state_group *g
 	for (int i = 0; i < group_count; i++)
 	{
 		if (groups[i]->state_count != group->state_count)
-			return 0;
+			continue;
 		if (groups_eq(groups[i], group))
 			return 1;
 	}
 	return 0;
 }
 
-void add_group(t_dfa **dfa, t_state_group *group)
+void print_group(t_state_group *group, int index)
 {
-	if (!(*dfa))
-		return;
-	(*dfa)->group_count++;
-	if (!(*dfa)->groups) {
-		(*dfa)->groups = (t_state_group **)malloc(sizeof(t_state_group *));
-		if (!(*dfa)->groups)
-			throw_error(ERR_ALLOC);
-	} else {
-		(*dfa)->groups = (t_state_group **)realloc((*dfa)->groups, sizeof(t_state_group *) * (*dfa)->group_count);
-		if (!(*dfa)->groups)
-			throw_error(ERR_ALLOC);
-	}
-	(*dfa)->groups[(*dfa)->group_count - 1] = group;
-	if (group->type = e_final_state)
-		add_final_group(dfa, group);
-}
-
-void add_final_group(t_dfa **dfa, t_state_group *group)
-{
-	if (!(*dfa))
-		return;
-	(*dfa)->end_count++;
-	if (!(*dfa)->end) {
-		(*dfa)->end = (t_state_group **)malloc(sizeof(t_state_group *));
-		if (!(*dfa)->end)
-			throw_error(ERR_ALLOC);
-	} else {
-		(*dfa)->end = (t_state_group **)realloc((*dfa)->end, sizeof(t_state_group *) * (*dfa)->end_count);
-		if (!(*dfa)->end)
-			throw_error(ERR_ALLOC);
-	}
-	(*dfa)->end[(*dfa)->end_count - 1] = group;
-}
-
-void print_group(t_state_group *group)
-{
-	printf("============================\n");
-	printf("       GROUP %s\n", TYPES[group->type]);
-	printf("============================\n");
+	printf("------------------------------\n");
+	printf("       GROUP %d %s\n\n", index + 1, TYPES[group->type]);
 	printf("\nNbr of states: %d\n\n", group->state_count);
 	printf("%s", COLORS[group->type]);
 	for (int i = 0; i < group->state_count; i++)
@@ -436,10 +476,35 @@ void print_group(t_state_group *group)
 		t_state *s = group->states[i];
 		printf("\tState %p\n", s);
 	}
-	printf("%s", RESET);	
+	printf("%s", RESET);
+}
+
+void print_groups(t_state_group **group, int group_count)
+{
+	printf("======================================\n");
+	printf("             %d GROUPS:\n", group_count);
+	printf("======================================\n");
+	for (int i = 0; i < group_count; i++)
+	{
+		print_group(group[i], i);
+	}
+	printf("======================================\n");
+}
+
+int contains_only_epsilon_transitions(t_state *state)
+{
+	int i = 0;
+	while (i < state->transition_count)
+	{
+		t_transition *t = state->transitions[i];
+		if (t->c != EPSILON)
+			return 0;
+		i++;
+	}
+	return 1;
 }
 
 void ft_putchar(char c)
 {
-	write(1, &c, 1);
+	putchar(c);
 }
