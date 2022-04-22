@@ -1,88 +1,105 @@
 #include "mptlc.h"
 
-void insert_star(t_btree_node **tree)
+static int calculate_precedence(char c)
 {
-	t_btree_node *root;
-	char el;
-
-	root = *tree;
-	while ((*tree)->right)
-		*tree = (*tree)->right;
-	el = (*tree)->c;
-	(*tree)->c = STAR;
-	(*tree)->left = create_btree_node(el);
-	*tree = root;
+	if (c == OR)
+		return (1);
+	if (c == CONCAT)
+		return (2);
+	if (c == STAR)
+		return (3);
+	return (0);
 }
 
-t_btree_node *regex_to_btree_elem(t_btree_node *tree, char **regex)
+t_btree_node *handle_operator(t_btree_stack *stack, char operator)
 {
-	char c = (*regex)[0];
-	t_btree_node *res;
+	if (operator== OR)
+	{
+		if (stack->size < 2)
+			throw_error(ERR_INV_REGEX);
+		t_btree_node *right = pop_btree_stack(stack);
+		t_btree_node *left = pop_btree_stack(stack);
+		t_btree_node *node = create_btree_node(operator);
+		node->left = left;
+		node->right = right;
+		return (node);
+	}
+	else if (operator== CONCAT)
+	{
+		if (stack->size < 2)
+			throw_error(ERR_INV_REGEX);
+		t_btree_node *right = pop_btree_stack(stack);
+		t_btree_node *left = pop_btree_stack(stack);
+		t_btree_node *node = create_btree_node(operator);
+		node->left = left;
+		node->right = right;
+		return (node);
+	}
+	else if (operator== STAR)
+	{
+		if (stack->size < 1)
+			throw_error(ERR_INV_REGEX);
+		t_btree_node *node = create_btree_node(operator);
+		node->left = pop_btree_stack(stack);
+		return (node);
+	}
+	return NULL;
+}
 
-	if (!tree)
+// Shunting-yard algorithm
+void regex_to_btree_shunting_yard(t_btree_stack *btree_stack, t_operator_stack *operator_stack, char **regex)
+{
+	char c = **regex;
+
+	if (is_op(c) || c == STAR)
 	{
-		if (c == STAR || c == OR || c == CLOSE_PARENTHESIS)
-			throw_error(ERR_INV_REGEX);
-		else if (c != OPEN_PARENTHESIS)
+		if (operator_stack->size > 0)
 		{
-			(*regex)++;
-			return create_btree_node(c);
+			while (calculate_precedence(c) <= calculate_precedence(top_operator_stack(*operator_stack)))
+			{
+				char ctop = pop_operator_stack(operator_stack);
+				t_btree_node *res = handle_operator(btree_stack, ctop);
+				push_btree_stack(btree_stack, res);
+				if (operator_stack->size == 0)
+					break;
+			}
 		}
+		push_operator_stack(operator_stack, c);
 	}
-	if (c == OR)
+	else if (c == OPEN_PARENTHESIS)
+		push_operator_stack(operator_stack, c);
+	else if (c == CLOSE_PARENTHESIS)
 	{
-		int next_or = find_next_or(*regex, 1);
-		res = create_btree_node(OR);
-		res->left = tree;
-		res->right = regex_to_btree(substring(*regex, 1, next_or));
-		*regex = next_or >= 0 ? (*regex) + next_or : 0;
-		return res;
-	}
-	if (c == STAR)
-	{
-		insert_star(&tree);
-		(*regex)++;
-		return tree;
-	}
-	if (c == OPEN_PARENTHESIS)
-	{
-		int end = find_closing(*regex, 1);
-		if (end < 0)
-			throw_error(ERR_INV_REGEX);
-		if (tree)
+		while (top_operator_stack(*operator_stack) != OPEN_PARENTHESIS)
 		{
-			res = create_btree_node(CONCAT);
-			res->left = tree;
-			res->right = regex_to_btree(substring(*regex, 1, end));
+			char ctop = pop_operator_stack(operator_stack);
+			t_btree_node *res = handle_operator(btree_stack, ctop);
+			push_btree_stack(btree_stack, res);
 		}
-		else
-		{
-			res = regex_to_btree(substring(*regex, 1, end));
-		}
-		(*regex) += end;
-		return res;
+		pop_operator_stack(operator_stack);
 	}
-	if (c == CLOSE_PARENTHESIS)
-	{
-		(*regex)++;
-		return tree;
-	}
-	res = create_btree_node(CONCAT);
-	res->left = tree;
-	res->right = create_btree_node(c);
+	else
+		push_btree_stack(btree_stack, create_btree_node(c));
 	(*regex)++;
-	return res;
 }
 
 t_btree_node *regex_to_btree(char *regex)
 {
-	t_btree_node *tree;
+	t_btree_stack btree_stack = create_btree_stack();
+	t_operator_stack operator_stack = create_operator_stack();
 
-	tree = NULL;
 	while (regex && regex[0])
-		tree = regex_to_btree_elem(tree, &regex);
-
-	return (tree);
+		regex_to_btree_shunting_yard(&btree_stack, &operator_stack, &regex);
+	while (operator_stack.size > 0)
+	{
+		char ctop = pop_operator_stack(&operator_stack);
+		t_btree_node *res = handle_operator(&btree_stack, ctop);
+		push_btree_stack(&btree_stack, res);
+	}
+	printf("%d\n", btree_stack.size);
+	if (btree_stack.size != 1)
+		throw_error(ERR_INV_REGEX);
+	return (pop_btree_stack(&btree_stack));
 }
 
 void thompson_elem(t_btree_node *node)
@@ -316,17 +333,18 @@ t_dfa *create_dfa_from_nfa(t_nfa *nfa)
 	group_count++;
 
 	next_groups(&groups, &group_count, groups[0]);
+	print_groups(groups, group_count);
 
 	t_dfa *dfa = create_dfa();
 	t_state **states = (t_state **)malloc(sizeof(t_state *) * group_count);
 	if (!states)
 		throw_error(ERR_ALLOC);
-
 	for (int i = 0; i < group_count; i++)
 	{
 		t_state *state = create_state(i == 0 ? e_initial_state : groups[i]->type);
 		states[i] = state;
 		add_state_to_dfa(&dfa, state);
+		printf("%p\n", state);
 	}
 	for (int i = 0; i < group_count; i++)
 	{

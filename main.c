@@ -10,6 +10,7 @@ int main(int argc, char *argv[])
 	t_btree_node *tree;
 	t_dfa *dfa;
 
+	regex = insert_concat(regex);
 	tree = regex_to_btree(regex);
 	if (!tree)
 		throw_error(ERR_EMPTY_TREE);

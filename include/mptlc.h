@@ -91,15 +91,26 @@ typedef struct s_dfa
 	int end_count;
 } t_dfa;
 
+typedef struct s_btree_stack
+{
+	t_btree_node **content;
+	int size;
+} t_btree_stack;
+
+typedef struct s_operator_stack
+{
+	char *content;
+	int size;
+} t_operator_stack;
+
 t_btree_node *create_btree_node(char c);
 void btree_apply_postfix(t_btree_node *root, void (*applyf)(char));
 void free_btree_node(t_btree_node *node);
 void free_btree(t_btree_node *root);
-char *substring(char *str, int start, int end);
+char *substring(char *str, int start);
 void throw_error(char *str);
-int find_closing(char *str, int start);
-int find_next_or(char *str, int start);
-t_btree_node *regex_to_btree_elem(t_btree_node *tree, char **regex);
+int find_closing(char *str);
+void regex_to_btree_shunting_yard(t_btree_stack *btree_stack, t_operator_stack *oeprator_stack, char **regex);
 t_btree_node *regex_to_btree(char *regex);
 int find_char(char *str, char c, int start);
 t_btree_node *copy_btree(t_btree_node *tree);
@@ -130,6 +141,16 @@ void print_group(t_state_group *group, int index);
 void print_groups(t_state_group **groups, int group_count);
 int contains_only_epsilon_transitions(t_state *state);
 int recognize(t_state *current_state, char *word);
+t_btree_stack create_btree_stack();
+t_operator_stack create_operator_stack();
+void push_btree_stack(t_btree_stack *stack, t_btree_node *el);
+t_btree_node *pop_btree_stack(t_btree_stack *stack);
+char top_operator_stack(t_operator_stack stack);
+void push_operator_stack(t_operator_stack *stack, char el);
+char pop_operator_stack(t_operator_stack *stack);
+int is_op(char c);
+char *insert_concat(const char *regex);
+char *insert_paranthesis(const char *regex);
 void ft_putchar(char c);
 
 #endif // UTILS_H

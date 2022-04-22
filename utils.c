@@ -184,20 +184,18 @@ t_btree_node *copy_btree(t_btree_node *tree)
 	return copy;
 }
 
-char *substring(char *str, int start, int end)
+char *substring(char *str, int end)
 {
 	char *sub;
 	int i;
 
 	i = 0;
-	sub = (char *)malloc(sizeof(char) * (end - start + 2));
+	sub = (char *)malloc(sizeof(char) * (end + 1));
 	if (sub == NULL)
 		throw_error(ERR_ALLOC);
-	end = end >= 0 ? end : strlen(str);
-	while (start < end)
+	while (i < end)
 	{
-		sub[i] = str[start];
-		start++;
+		sub[i] = str[i];
 		i++;
 	}
 	sub[i] = '\0';
@@ -210,9 +208,9 @@ void throw_error(char *str)
 	exit(1);
 }
 
-int find_closing(char *str, int start)
+int find_closing(char *str)
 {
-	int i = start;
+	int i = 0;
 	int count = 1;
 
 	while (str[i])
@@ -238,25 +236,6 @@ int find_char(char *str, char c, int start)
 	while (str[i])
 	{
 		if (str[i] == c)
-			return i;
-		i++;
-	}
-	return -1;
-}
-
-int find_next_or(char *str, int start)
-{
-	// ignore or between parentheses
-	int i = start;
-	while (str[i])
-	{
-		if (str[i] == OPEN_PARENTHESIS)
-		{
-			i = find_closing(str, i);
-			if (i == -1)
-				return -1;
-		}
-		if (str[i] == OR)
 			return i;
 		i++;
 	}
@@ -491,17 +470,168 @@ void print_groups(t_state_group **group, int group_count)
 	printf("======================================\n");
 }
 
-int contains_only_epsilon_transitions(t_state *state)
+t_btree_stack create_btree_stack()
 {
-	int i = 0;
-	while (i < state->transition_count)
+	t_btree_stack stack;
+
+	stack.content = NULL;
+	stack.size = 0;
+
+	return stack;
+}
+
+t_operator_stack create_operator_stack()
+{
+	t_operator_stack stack;
+
+	stack.content = NULL;
+	stack.size = 0;
+
+	return stack;
+}
+
+void push_btree_stack(t_btree_stack *stack, t_btree_node *el)
+{
+	if (stack->size == 0)
 	{
-		t_transition *t = state->transitions[i];
-		if (t->c != EPSILON)
-			return 0;
-		i++;
+		stack->size++;
+		stack->content = (t_btree_node **)malloc(sizeof(t_btree_node *));
+		if (!stack->content)
+			throw_error(ERR_ALLOC);
+		stack->content[0] = el;
+		return;
 	}
-	return 1;
+	stack->size++;
+	stack->content = (t_btree_node **)realloc(stack->content, sizeof(t_btree_node *) * stack->size);
+	if (!stack->content)
+		throw_error(ERR_ALLOC);
+	stack->content[stack->size - 1] = el;
+}
+
+t_btree_node *pop_btree_stack(t_btree_stack *stack)
+{
+	if (stack->size == 0)
+		return NULL;
+	t_btree_node *el = stack->content[stack->size - 1];
+	stack->size--;
+	stack->content = (t_btree_node **)realloc(stack->content, sizeof(t_btree_node *) * stack->size);
+	if (!stack->content)
+		throw_error(ERR_ALLOC);
+	return el;
+}
+
+char top_operator_stack(t_operator_stack stack)
+{
+	if (stack.size == 0)
+		return '\0';
+	return stack.content[stack.size - 1];
+}
+
+void push_operator_stack(t_operator_stack *stack, char el)
+{
+	if (stack->size == 0)
+	{
+		stack->size++;
+		stack->content = (char *)malloc(sizeof(char));
+		if (!stack->content)
+			throw_error(ERR_ALLOC);
+		stack->content[0] = el;
+		return;
+	}
+	stack->size++;
+	stack->content = (char *)realloc(stack->content, sizeof(char) * stack->size);
+	if (!stack->content)
+		throw_error(ERR_ALLOC);
+	stack->content[stack->size - 1] = el;
+}
+
+char pop_operator_stack(t_operator_stack *stack)
+{
+	if (stack->size == 0)
+		return '\0';
+	char el = stack->content[stack->size - 1];
+	stack->size--;
+	stack->content = (char *)realloc(stack->content, sizeof(char) * stack->size);
+	if (!stack->content)
+		throw_error(ERR_ALLOC);
+	return el;
+}
+
+int is_op(char c)
+{
+	if (c == OR || c == CONCAT)
+		return 1;
+	return 0;
+}
+
+static int get_concat_count(const char *regex)
+{
+	int count = 0;
+	int len = strlen(regex);
+
+	for (int i = 0; i < len; i++)
+	{
+		if (regex[i + 1])
+		{
+			char c1 = regex[i];
+			char c2 = regex[i + 1];
+			if (is_op(c1) || is_op(c2))
+				continue;
+			if (c1 == OPEN_PARENTHESIS)
+				continue;
+			if (c2 == CLOSE_PARENTHESIS)
+				continue;
+			if (c1 == CLOSE_PARENTHESIS && c2 == STAR)
+				continue;
+			if (c1 == CLOSE_PARENTHESIS && c2 == CLOSE_PARENTHESIS)
+				continue;
+			if (c2 == STAR)
+				continue;
+			count++;
+		}
+	}
+	return count;
+}
+
+char *insert_concat(const char *regex)
+{
+	int init_len = strlen(regex);
+	int concat_count = get_concat_count(regex);
+	char *ret = (char *)malloc(sizeof(char) * (init_len + concat_count + 1));
+	int j = 0;
+
+	for (int i = 0; i < init_len; i++)
+	{
+		if (regex[i + 1])
+		{
+			char c1 = regex[i];
+			char c2 = regex[i + 1];
+			if (is_op(c1) || is_op(c2) ||
+				(c1 == OPEN_PARENTHESIS) ||
+				(c2 == CLOSE_PARENTHESIS) ||
+				(c1 == CLOSE_PARENTHESIS && c2 == STAR) ||
+				(c1 == CLOSE_PARENTHESIS && c2 == CLOSE_PARENTHESIS) ||
+				(c2 == STAR))
+			{
+				ret[j] = c1;
+				j++;
+			}
+			else
+			{
+				ret[j] = c1;
+				ret[j + 1] = CONCAT;
+				j += 2;
+			}
+		}
+		else
+		{
+			ret[j] = regex[i];
+			j++;
+		}
+	}
+	ret[j] = '\0';
+
+	return ret;
 }
 
 void ft_putchar(char c)
