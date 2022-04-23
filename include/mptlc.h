@@ -17,6 +17,7 @@
 #define ERR_INV_REGEX "Error: invalid regex."
 #define ERR_EMPTY_TREE "Error: regex could not be parsed."
 #define ERR_ALLOC "Error: cannot allocate memory."
+#define ERR_TESTS_NOT_FOUND "Error: no tests found."
 
 #define RED "\033[0;31m"
 #define GREEN "\033[0;32m"
@@ -71,6 +72,7 @@ typedef struct s_state_group
 {
 	t_state_type type;
 	t_state **states;
+	t_state *state_eq;
 	int state_count;
 } t_state_group;
 
@@ -134,7 +136,7 @@ void thompson(t_btree_node *tree);
 t_dfa *create_dfa();
 t_dfa *create_dfa_from_nfa(t_nfa *nfa);
 t_state_group *create_group(t_state_type type);
-int is_group_in_groups(t_state_group **groups, int group_count, t_state_group *group);
+t_state *is_group_in_groups(t_state_group **groups, int group_count, t_state_group *group);
 int is_state_in_group(t_state_group *group, t_state *state);
 void add_state_to_group(t_state_group **group, t_state *state);
 void print_group(t_state_group *group, int index);

@@ -94,13 +94,15 @@ void add_state_to_dfa(t_dfa **dfa, t_state *state)
 				throw_error(ERR_ALLOC);
 			(*dfa)->ends[0] = state;
 			(*dfa)->end_count = 1;
-			return;
 		}
-		(*dfa)->ends = (t_state **)realloc((*dfa)->ends, sizeof(t_state *) * ((*dfa)->end_count + 1));
-		if ((*dfa)->ends == NULL)
-			throw_error(ERR_ALLOC);
-		(*dfa)->ends[(*dfa)->end_count] = state;
-		(*dfa)->end_count++;
+		else
+		{
+			(*dfa)->ends = (t_state **)realloc((*dfa)->ends, sizeof(t_state *) * ((*dfa)->end_count + 1));
+			if ((*dfa)->ends == NULL)
+				throw_error(ERR_ALLOC);
+			(*dfa)->ends[(*dfa)->end_count] = state;
+			(*dfa)->end_count++;
+		}
 	}
 	else if (state->type == e_initial_state)
 		(*dfa)->start = state;
@@ -432,16 +434,16 @@ int groups_eq(t_state_group *group1, t_state_group *group2)
 	return 1;
 }
 
-int is_group_in_groups(t_state_group **groups, int group_count, t_state_group *group)
+t_state *is_group_in_groups(t_state_group **groups, int group_count, t_state_group *group)
 {
 	for (int i = 0; i < group_count; i++)
 	{
 		if (groups[i]->state_count != group->state_count)
 			continue;
 		if (groups_eq(groups[i], group))
-			return 1;
+			return groups[i]->state_eq;
 	}
-	return 0;
+	return NULL;
 }
 
 void print_group(t_state_group *group, int index)
