@@ -332,8 +332,9 @@ t_dfa *create_dfa_from_nfa(t_nfa *nfa)
 	groups[0] = create_group(e_initial_state);
 	epsilon_close(&groups[0], nfa->start);
 	group_count++;
-	t_state *state = create_state(e_initial_state);
+	t_state *state = create_state(groups[0]->type);
 	add_state_to_dfa(&dfa, state);
+	dfa->start = state;
 	groups[0]->state_eq = state;
 
 	next_groups(&dfa, &groups, &group_count, groups[0]);
@@ -354,9 +355,7 @@ int recognize(t_state *current_state, char *word)
 	{
 		t_transition *t = current_state->transitions[i];
 		if (t->c == c)
-		{
 			return recognize(t->next, word + 1);
-		}
 	}
 	return 0;
 }

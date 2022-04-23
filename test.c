@@ -1,12 +1,14 @@
 #include "mptlc.h"
 
-static void test(int number, t_dfa *dfa, char *word)
+static void test(int number, t_dfa *dfa, char *word, char *regex, int expect)
 {
     int result = recognize(dfa->start, word);
     if (result)
         printf("[%d]\t%sMot accepté%s\n", number + 1, GREEN, RESET);
     else
         printf("[%d]\t%sMot non accepté%s\n", number + 1, RED, RESET);
+    if (result != expect)
+        printf("\t--> %s\t%s\n", regex, word);
 }
 
 int main(int argc, char *argv[])
@@ -35,7 +37,7 @@ int main(int argc, char *argv[])
             throw_error(ERR_EMPTY_TREE);
         thompson(tree);
         dfa = create_dfa_from_nfa(pop_nfa());
-        test(i, dfa, word);
+        test(i, dfa, word, regex, 1);
         i++;
     }
     printf("=========================\n");
@@ -50,7 +52,7 @@ int main(int argc, char *argv[])
             throw_error(ERR_EMPTY_TREE);
         thompson(tree);
         dfa = create_dfa_from_nfa(pop_nfa());
-        test(i, dfa, word);
+        test(i, dfa, word, regex, 0);
         i++;
     }
 

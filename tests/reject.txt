@@ -17,3 +17,6 @@ b* bbbbbbbbba
 (a|b)*aa(a|b)*bb(a|b)* ababababababababababababababab
 (ab*|a) abbbbbbbbbbbbbbba
 (ab*|a) aa
+(b*ab*ab*)*b*ab* aabbbbbbbbbbbabbbbbbabbbbbbabbbbbbababab
+(a|b)*a(a|b)*a(a|b)* bbbbbbbbbbbbbbbbbbbbbbbbb
+(a|b)*a(a|b)*a(a|b)* abbbbbbbbbbbbbbbbbbbbbbbb

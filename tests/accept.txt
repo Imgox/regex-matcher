@@ -3,7 +3,7 @@ b b
 a* a
 a* aaaaaaaaa
 b* b
-b* bbbbbbbbb
+b* bbbbbbbb
 (a|b) a
 (a|b) b
 (a|(aa|bbb)) a
@@ -20,3 +20,6 @@ b* bbbbbbbbb
 (a|b)*aa(a|b)*bb(a|b)* abababababababaabababababbbbaababab
 (ab*|a) abbbbbbbbbbbbbbb
 (ab*|a) a
+(b*ab*ab*)*b*ab* aabbbbbbbbbbbabbbbbbabbbbbbabbbbbbabababab
+(a|b)*a(a|b)*a(a|b)* abbbbbbbbbabbbbbbbbbbbbbbbb
+(a|b)*a(a|b)*a(a|b)* abbbbbbbbbabbbbbbbbbbbbbabb
