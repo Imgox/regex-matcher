@@ -40,8 +40,8 @@ void add_transition(t_state **state, t_transition *transition)
 		return;
 	}
 	(*state)->transitions = (t_transition **)realloc((*state)->transitions, sizeof(t_transition *) * ((*state)->transition_count + 1));
-	if ((*state)->transitions == NULL)
-		throw_error(ERR_ALLOC);
+	// if ((*state)->transitions == NULL)
+	// 	throw_error(ERR_ALLOC);
 	(*state)->transitions[(*state)->transition_count] = transition;
 	(*state)->transition_count++;
 }
@@ -77,8 +77,8 @@ void add_state_to_nfa(t_nfa **nfa, t_state *state)
 		return;
 	}
 	(*nfa)->states = (t_state **)realloc((*nfa)->states, sizeof(t_state *) * ((*nfa)->state_count + 1));
-	if ((*nfa)->states == NULL)
-		throw_error(ERR_ALLOC);
+	// if ((*nfa)->states == NULL)
+	// 	throw_error(ERR_ALLOC);
 	(*nfa)->states[(*nfa)->state_count] = state;
 	(*nfa)->state_count++;
 }
@@ -98,8 +98,8 @@ void add_state_to_dfa(t_dfa **dfa, t_state *state)
 		else
 		{
 			(*dfa)->ends = (t_state **)realloc((*dfa)->ends, sizeof(t_state *) * ((*dfa)->end_count + 1));
-			if ((*dfa)->ends == NULL)
-				throw_error(ERR_ALLOC);
+			// if ((*dfa)->ends == NULL)
+			// 	throw_error(ERR_ALLOC);
 			(*dfa)->ends[(*dfa)->end_count] = state;
 			(*dfa)->end_count++;
 		}
@@ -116,8 +116,8 @@ void add_state_to_dfa(t_dfa **dfa, t_state *state)
 		return;
 	}
 	(*dfa)->states = (t_state **)realloc((*dfa)->states, sizeof(t_state *) * ((*dfa)->state_count + 1));
-	if ((*dfa)->states == NULL)
-		throw_error(ERR_ALLOC);
+	// if ((*dfa)->states == NULL)
+	// 	throw_error(ERR_ALLOC);
 	(*dfa)->states[(*dfa)->state_count] = state;
 	(*dfa)->state_count++;
 }
@@ -265,8 +265,8 @@ void free_nfa(t_nfa *nfa)
 void push_nfa(t_nfa *nfa)
 {
 	g_nfa_stack = (t_nfa **)realloc(g_nfa_stack, (g_nfa_count + 1) * sizeof(t_nfa *));
-	if (g_nfa_stack == NULL)
-		throw_error(ERR_ALLOC);
+	// if (g_nfa_stack == NULL)
+	// 	throw_error(ERR_ALLOC);
 	g_nfa_stack[g_nfa_count] = nfa;
 	g_nfa_count++;
 }
@@ -412,8 +412,8 @@ void add_state_to_group(t_state_group **group, t_state *state)
 	{
 		(*group)->state_count++;
 		(*group)->states = (t_state **)realloc((*group)->states, sizeof(t_state *) * (*group)->state_count);
-		if (!(*group)->states)
-			throw_error(ERR_ALLOC);
+		// if (!(*group)->states)
+		// 	throw_error(ERR_ALLOC);
 	}
 	if (state->type == e_final_state)
 		(*group)->type = e_final_state;
@@ -505,8 +505,8 @@ void push_btree_stack(t_btree_stack *stack, t_btree_node *el)
 	}
 	stack->size++;
 	stack->content = (t_btree_node **)realloc(stack->content, sizeof(t_btree_node *) * stack->size);
-	if (!stack->content)
-		throw_error(ERR_ALLOC);
+	// if (!stack->content)
+	// 	throw_error(ERR_ALLOC);
 	stack->content[stack->size - 1] = el;
 }
 
@@ -517,8 +517,8 @@ t_btree_node *pop_btree_stack(t_btree_stack *stack)
 	t_btree_node *el = stack->content[stack->size - 1];
 	stack->size--;
 	stack->content = (t_btree_node **)realloc(stack->content, sizeof(t_btree_node *) * stack->size);
-	if (!stack->content)
-		throw_error(ERR_ALLOC);
+	// if (!stack->content)
+	// 	throw_error(ERR_ALLOC);
 	return el;
 }
 
@@ -542,8 +542,8 @@ void push_operator_stack(t_operator_stack *stack, char el)
 	}
 	stack->size++;
 	stack->content = (char *)realloc(stack->content, sizeof(char) * stack->size);
-	if (!stack->content)
-		throw_error(ERR_ALLOC);
+	// if (!stack->content)
+	// 	throw_error(ERR_ALLOC);
 	stack->content[stack->size - 1] = el;
 }
 
@@ -554,8 +554,8 @@ char pop_operator_stack(t_operator_stack *stack)
 	char el = stack->content[stack->size - 1];
 	stack->size--;
 	stack->content = (char *)realloc(stack->content, sizeof(char) * stack->size);
-	if (!stack->content)
-		throw_error(ERR_ALLOC);
+	// if (!stack->content)
+	// 	throw_error(ERR_ALLOC);
 	return el;
 }
 

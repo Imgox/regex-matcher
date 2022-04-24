@@ -56,8 +56,8 @@ int main(int argc, char *argv[])
         i++;
     }
 
-    fclose(accept_file);
-    fclose(reject_file);
+    // fclose(accept_file);
+    // fclose(reject_file);
     free(regex);
     free(word);
     free_btree(tree);
