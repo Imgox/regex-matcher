@@ -72,6 +72,8 @@ void regex_to_btree_shunting_yard(t_btree_stack *btree_stack, t_operator_stack *
 	{
 		while (top_operator_stack(*operator_stack) != OPEN_PARENTHESIS)
 		{
+			if (operator_stack->size == 0)
+				throw_error(ERR_INV_REGEX);
 			char ctop = pop_operator_stack(operator_stack);
 			t_btree_node *res = handle_operator(btree_stack, ctop);
 			push_btree_stack(btree_stack, res);
