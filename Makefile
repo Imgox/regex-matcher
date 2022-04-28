@@ -1,14 +1,20 @@
-NAME = mptlc
-SRC_MAIN = utils.c mptlc.c main.c
-SRC_VERBOSE = utils.c mptlc.c verbose.c
-SRC_TEST = utils.c mptlc.c test.c
-# CFLAGS = -Wall -Wextra -Werror
-INCLUDE = -I ./include
 CC = gcc
-OBJ_MAIN = $(SRC_MAIN:%.c=bin/%.o)
-OBJ_VERBOSE = $(SRC_VERBOSE:%.c=bin/%.o)
-OBJ_TEST = $(SRC_TEST:%.c=bin/%.o)
+NAME = mptlc
+
+SRC = btree.c state.c nfa.c dfa.c utils.c mptlc.c
+SRC_MAIN = $(SRC) main.c
+SRC_VERBOSE = $(SRC) verbose.c
+SRC_TEST = $(SRC) test.c
+
+INCLUDE = -I ./include
+
+OBJ_MAIN = $(SRC_MAIN:%.c=./bin/%.o)
+OBJ_VERBOSE = $(SRC_VERBOSE:%.c=./bin/%.o)
+OBJ_TEST = $(SRC_TEST:%.c=./bin/%.o)
+
 BIN_DIR = bin
+SRC_DIR = src
+
 RM = rm -rf
 MKDIR = mkdir -p
 
@@ -37,7 +43,7 @@ test: $(BIN_DIR) $(OBJ_TEST)
 $(BIN_DIR):
 	@$(MKDIR) $(BIN_DIR) > /dev/null 2>&1
 
-$(BIN_DIR)/%.o: %.c
+$(BIN_DIR)/%.o: $(SRC_DIR)/%.c
 	@echo "[./$<] ${YELLOW}Compiling..${RESET}"
 	@$(CC) $(CFLAGS) $(INCLUDE) -o $@ -c $<
 	@echo "[./$<] ${GREEN}Compiled!${RESET}"
